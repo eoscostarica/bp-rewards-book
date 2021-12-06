@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: ${NAMESPACE}-postgres
+    version: ${VERSION}
+  name: ${NAMESPACE}-postgres
+spec:
+  serviceName: ${NAMESPACE}-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ${NAMESPACE}-postgres
+      version: ${VERSION}
+  template:
+    metadata:
+      labels:
+        app: ${NAMESPACE}-postgres
+        version: ${VERSION}
+    spec:
+      imagePullSecrets:
+        - name: regcred
+      containers:
+        - image: postgres:13.3-alpine
+          imagePullPolicy: 'Always'
+          name: ${NAMESPACE}-postgres
+          envFrom:
+            - configMapRef:
+                name: ${NAMESPACE}-postgres-config
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: postgres
+              subPath: postgres
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres
+      spec:
+        accessModes: ['ReadWriteOnce']
+        storageClassName: ${NAMESPACE}-storage
+        resources:
+          requests:
+            storage: 100Gi

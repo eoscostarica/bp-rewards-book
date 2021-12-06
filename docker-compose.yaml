@@ -1,0 +1,61 @@
+version: '3.6'
+services:
+  postgres:
+    container_name: postgres
+    image: postgres:13.3-alpine
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: '${POSTGRES_USER}'
+      POSTGRES_PASSWORD: '${POSTGRES_PASSWORD}'
+      POSTGRES_DB: '${POSTGRES_DB}'
+  hapi:
+    container_name: hapi
+    image: node:14.2.0
+    ports:
+      - '9090:9090'
+    volumes:
+      - type: bind
+        source: ./hapi
+        target: /app
+    working_dir: /app
+    command: bash -c "yarn && yarn watch"
+    environment:
+      HAPI_SERVER_PORT: '${HAPI_SERVER_PORT}'
+      HAPI_SERVER_ADDRESS: '${HAPI_SERVER_ADDRESS}'
+      HAPI_NETWORK_API: '${HAPI_NETWORK_API}'
+      HAPI_NETWORK_CHAIN_ID: '${HAPI_NETWORK_CHAIN_ID}'
+      HAPI_HASURA_URL: '${HAPI_HASURA_URL}'
+      HAPI_HASURA_ADMIN_SECRET: '${HAPI_HASURA_ADMIN_SECRET}'
+      HAPI_HYPERION_API: '${HAPI_HYPERION_API}'
+      HAPI_HYPERION_START_AT: '${HAPI_HYPERION_START_AT}'
+      HAPI_EXCHANGE_API: '${HAPI_EXCHANGE_API}'
+  hasura:
+    container_name: hasura
+    image: hasura/graphql-engine:v2.0.4.cli-migrations-v3
+    ports:
+      - '8080:8080'
+    depends_on:
+      - postgres
+    volumes:
+      - ./hasura/migrations:/migrations
+      - ./hasura/metadata:/metadata
+      - ./hasura/seeds:/seeds
+    environment:
+      HASURA_GRAPHQL_DATABASE_URL: '${HASURA_GRAPHQL_DATABASE_URL}'
+      HASURA_GRAPHQL_MIGRATIONS_DIR: /migrations
+      HASURA_GRAPHQL_METADATA_DIR: /metadata
+      HASURA_GRAPHQL_SEEDS_DIR: /seeds
+      HASURA_GRAPHQL_ACTION_BASE_URL: '${HASURA_GRAPHQL_ACTION_BASE_URL}'
+      HASURA_GRAPHQL_ENABLE_CONSOLE: '${HASURA_GRAPHQL_ENABLE_CONSOLE}'
+      HASURA_GRAPHQL_ADMIN_SECRET: "${HASURA_GRAPHQL_ADMIN_SECRET}"
+      HASURA_GRAPHQL_UNAUTHORIZED_ROLE: "${HASURA_GRAPHQL_UNAUTHORIZED_ROLE}"
+      # Local Development Configurations It is recommended to disable this in production
+      HASURA_GRAPHQL_DEV_MODE: 'true'
+      HASURA_GRAPHQL_ENABLED_LOG_TYPES: startup, http-log, webhook-log, websocket-log, query-log
+      HASURA_GRAPHQL_ENABLE_LOGGING: 'true'
+
+volumes:
+  postgres_data:
